@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "fetchr_core",
+    "src-tauri"
+]
+resolver = "2"
