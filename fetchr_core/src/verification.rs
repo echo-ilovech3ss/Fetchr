@@ -100,7 +100,14 @@ pub fn verify_download(
 /// Spawns ffprobe to verify that the container is readable and contains valid streams.
 /// Returns the duration in seconds on success.
 fn run_ffprobe_check(ffprobe_path: &Path, file_path: &Path) -> Result<i64> {
-    let output = Command::new(ffprobe_path)
+    let mut cmd = Command::new(ffprobe_path);
+    #[cfg(target_os = "windows")]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd
         .arg("-v")
         .arg("error")
         .arg("-show_entries")

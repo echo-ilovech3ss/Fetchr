@@ -121,12 +121,14 @@ async fn locate_file(path: String) -> Result<(), String> {
     
     #[cfg(target_os = "windows")]
     {
+        let path_norm = path.replace("/", "\\");
         let status = std::process::Command::new("explorer")
-            .arg(format!("/select,\"{}\"", path))
-            .status();
+            .arg("/select,")
+            .arg(path_norm)
+            .spawn();
         match status {
-            Ok(s) if s.success() => Ok(()),
-            _ => Err("Failed to reveal file in Explorer.".to_string()),
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!("Failed to reveal file in Explorer: {}", e)),
         }
     }
 

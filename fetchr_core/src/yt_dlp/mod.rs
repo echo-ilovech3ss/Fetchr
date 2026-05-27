@@ -58,6 +58,12 @@ impl YtDlpEngine {
     pub async fn extract_metadata(&self, url: &str, cookies_browser: Option<&str>) -> Result<MediaMetadata> {
         let yt_dlp_path = self.get_executable_path()?;
         let mut cmd = Command::new(yt_dlp_path);
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
 
         // Standard flags for high speed, clean output, no playlist
         cmd.arg("-J")

@@ -169,9 +169,14 @@ impl BinManager {
     pub fn get_yt_dlp_version(&self, custom_path: Option<&str>) -> Result<String> {
         let binary_path = self.resolve_yt_dlp_binary(custom_path)?;
         tracing::info!("Querying version for yt-dlp at: {:?}", binary_path);
-        let output = match Command::new(&binary_path)
-            .arg("--version")
-            .output() {
+        let mut cmd = Command::new(&binary_path);
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        let output = match cmd.arg("--version").output() {
                 Ok(o) => o,
                 Err(e) => {
                     tracing::error!("Failed to execute yt-dlp binary at {:?}: {}", binary_path, e);

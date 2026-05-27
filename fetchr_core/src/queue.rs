@@ -233,6 +233,12 @@ impl QueueOrchestrator {
 
         // Build command arguments
         let mut cmd = Command::new(&yt_dlp_path);
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
         cmd.arg("--newline")
            .arg("--progress-template")
            .arg("download-json:%(progress)j");
