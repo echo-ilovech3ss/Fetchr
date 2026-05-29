@@ -16,7 +16,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Cpu,
-  AlertTriangle
+  AlertTriangle,
+  Radio
 } from 'lucide-react';
 
 // ==========================================
@@ -54,8 +55,6 @@ interface HistoryItem {
   download_duration_secs: number;
   completed_at: string;
 }
-
-
 
 interface SelfCheckStatus {
   yt_dlp: {
@@ -163,7 +162,7 @@ export default function App() {
     });
 
     const unlistenCompletePromise = listen('queue-complete', () => {
-      showToast('All downloads completed!', 'success');
+      showToast('All downloads completed successfully.', 'success');
       fetchHistory(); // Refresh completed history logs
     });
 
@@ -197,7 +196,7 @@ export default function App() {
 
         if (isValid && isSupported && trimmed !== urlInput && !analyzedMedia && activeTab === 'downloader' && !isOnboarding) {
           setUrlInput(trimmed);
-          showToast('Media link detected from your clipboard!', 'info');
+          showToast('Media link captured from clipboard.', 'info');
         }
       } catch (e) {
         // Clipboard read permission might not be active, fail silently
@@ -272,7 +271,7 @@ export default function App() {
       
       setTimeout(() => {
         setIsOnboarding(false);
-        showToast('System is ready! Welcome to Fetchr.', 'success');
+        showToast('Ready! Welcome to Fetchr.', 'success');
       }, 1500);
     } catch (e) {
       showToast('Setup failed: ' + e, 'error');
@@ -288,7 +287,7 @@ export default function App() {
       showToast(res, 'success');
       triggerSelfCheck();
     } catch (e) {
-      showToast('Repair failed: ' + e, 'error');
+      showToast('Update failed: ' + e, 'error');
     } finally {
       setIsRepairing(false);
     }
@@ -326,7 +325,7 @@ export default function App() {
       });
       setAnalyzedMedia(res);
       setVideoQuality('best'); // Always default to best quality for each new URL
-      showToast('Details loaded!', 'success');
+      showToast('Details loaded successfully.', 'success');
     } catch (e) {
       showToast('Could not load link details. Check settings or connection.', 'error');
     } finally {
@@ -356,7 +355,7 @@ export default function App() {
         taskType
       });
 
-      showToast('Download started. Track it in "Active Downloads".', 'success');
+      showToast('Download started. Track in "Active Downloads".', 'success');
       setAnalyzedMedia(null);
       setUrlInput('');
       setActiveTab('queue');
@@ -527,41 +526,41 @@ export default function App() {
       <div style={{
         width: '100vw',
         height: '100vh',
-        background: '#090c15',
+        background: '#0c0b0a',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        backgroundImage: 'radial-gradient(circle at top, rgba(99, 102, 241, 0.05), transparent 70%)'
+        backgroundImage: 'radial-gradient(circle at center, rgba(224, 92, 59, 0.04), transparent 70%)'
       }}>
-        <div className="cyber-card" style={{ maxWidth: '520px', width: '100%', textAlign: 'center', padding: '3rem 2.5rem' }}>
+        <div className="cyber-card" style={{ maxWidth: '480px', width: '100%', textAlign: 'center', padding: '3rem 2.5rem' }}>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <div style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '24px',
-              background: 'rgba(99, 102, 241, 0.08)',
+              width: '60px',
+              height: '60px',
+              borderRadius: '8px',
+              background: 'rgba(224, 92, 59, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid rgba(99, 102, 241, 0.15)'
+              border: '1px solid rgba(224, 92, 59, 0.15)'
             }}>
-              <Download size={32} color="var(--accent-indigo)" />
+              <Download size={26} color="var(--accent-yellow)" />
             </div>
           </div>
 
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
-            Welcome to Fetchr
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.8rem', letterSpacing: '-0.02em', color: '#fff' }}>
+            Setup Engine Core
           </h2>
 
           {setupStep === 'welcome' && (
             <div>
               <p style={{ color: 'var(--text-sub)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Let's set up your download engine. This is fully automatic, takes about 30 seconds, and ensures you can download videos at maximum speed and quality.
+                Let's configure your safe media extraction engine. This is fully automatic, takes about 30 seconds, and ensures high-performance download capability.
               </p>
               <button className="btn-primary" style={{ width: '100%' }} onClick={handleStartOnboardingSetup}>
-                Start Automatic Setup
+                Configure Automatically
               </button>
             </div>
           )}
@@ -569,14 +568,15 @@ export default function App() {
           {setupStep === 'downloading' && (
             <div>
               <p style={{ color: 'var(--text-sub)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Downloading the latest safe media extraction components in the background. Please keep Fetchr open...
+                Downloading the latest extraction resources in the background. Please keep the application open...
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div className="progress-bar-container">
-                  <div className="progress-bar-fill" style={{ width: '65%', animation: 'shimmer 1.5s infinite' }}></div>
+                  <div className="progress-bar-fill" style={{ width: '65%' }}></div>
                 </div>
-                <span className="mono-metric" style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)' }}>
-                  Downloading core assets...
+                <span className="mono-metric" style={{ fontSize: '0.75rem', color: 'var(--accent-yellow)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Provisioning binaries...</span>
+                  <span>65%</span>
                 </span>
               </div>
             </div>
@@ -589,7 +589,7 @@ export default function App() {
                 Setup Complete!
               </div>
               <p style={{ color: 'var(--text-sub)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                Launching your clean media library...
+                Launching your library...
               </p>
             </div>
           )}
@@ -609,18 +609,29 @@ export default function App() {
       {/* Sidebar Navigation */}
       <aside style={{
         width: '260px',
-        background: '#090c15',
+        background: '#131110',
         borderRight: '1px solid var(--border-slate)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '1.75rem 1.25rem',
-        justifyContent: 'space-between'
+        padding: '2rem 1.25rem',
+        justifyContent: 'space-between',
+        zIndex: 20
       }}>
         <div>
           {/* Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
-            <Download size={26} color="var(--accent-indigo)" />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '6px',
+              background: 'var(--accent-yellow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Download size={18} color="#0c0b0a" />
+            </div>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ebdcd2' }}>
               Fetchr
             </h1>
           </div>
@@ -628,16 +639,22 @@ export default function App() {
           {/* Navigation Links */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div className={`nav-tab ${activeTab === 'downloader' ? 'active' : ''}`} onClick={() => setActiveTab('downloader')}>
-              <Download size={20} />
+              <Radio size={18} />
               <span style={{ fontSize: '0.9rem' }}>Download Media</span>
             </div>
             
             <div className={`nav-tab ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => setActiveTab('queue')}>
-              <Activity size={20} />
-              <span style={{ fontSize: '0.9rem', display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Activity size={18} />
+              <span style={{ 
+                fontSize: '0.9rem',
+                display: 'flex', 
+                width: '100%', 
+                justifyContent: 'space-between', 
+                alignItems: 'center' 
+              }}>
                 Active Downloads
                 {queue.filter(t => t.status === 'Downloading' || t.status === 'Pending').length > 0 && (
-                  <span className="mono-metric" style={{ background: '#fff', color: '#000', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '6px', fontWeight: 700 }}>
+                  <span className="mono-metric" style={{ background: '#ebdcd2', color: '#0c0b0a', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '3px', fontWeight: 700 }}>
                     {queue.filter(t => t.status === 'Downloading' || t.status === 'Pending').length}
                   </span>
                 )}
@@ -645,30 +662,30 @@ export default function App() {
             </div>
             
             <div className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-              <Layers size={20} />
+              <Layers size={18} />
               <span style={{ fontSize: '0.9rem' }}>Saved Library</span>
             </div>
             
             <div className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-              <Settings size={20} />
+              <Settings size={18} />
               <span style={{ fontSize: '0.9rem' }}>App Settings</span>
             </div>
           </nav>
         </div>
 
-        {/* Binary Engine Diagnostics Status Bar */}
+        {/* Diagnostics Status Panel */}
         {selfCheck && (
-          <div className="cyber-card" style={{ padding: '0.85rem', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: 'none' }}>
+          <div className="cyber-card" style={{ padding: '0.85rem', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#191716' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-sub)' }}>System core:</span>
+              <span style={{ color: 'var(--text-sub)' }}>Scraper core:</span>
               <span style={{ 
                 color: selfCheck.yt_dlp.status === 'OK' ? 'var(--accent-green)' : 'var(--accent-rose)',
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '5px'
               }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: selfCheck.yt_dlp.status === 'OK' ? 'var(--accent-green)' : 'var(--accent-rose)', display: 'inline-block' }}></span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: selfCheck.yt_dlp.status === 'OK' ? 'var(--accent-green)' : 'var(--accent-rose)', display: 'inline-block' }}></span>
                 {selfCheck.yt_dlp.status === 'OK' ? 'Ready' : 'Setup Required'}
               </span>
             </div>
@@ -679,9 +696,9 @@ export default function App() {
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '5px'
               }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: selfCheck.ffmpeg.status === 'OK' ? 'var(--accent-green)' : 'var(--accent-rose)', display: 'inline-block' }}></span>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: selfCheck.ffmpeg.status === 'OK' ? 'var(--accent-green)' : 'var(--accent-rose)', display: 'inline-block' }}></span>
                 {selfCheck.ffmpeg.status === 'OK' ? 'Active' : 'Missing'}
               </span>
             </div>
@@ -689,47 +706,53 @@ export default function App() {
         )}
       </aside>
 
-      {/* Main Panel Shell */}
+      {/* Main Content Area */}
       <main style={{
         flex: 1,
-        background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.02), transparent 60%), #0b0f19',
+        background: 'radial-gradient(circle at top right, rgba(224, 92, 59, 0.02), transparent 60%), #0c0b0a',
         padding: '2.5rem 3rem',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        position: 'relative'
       }}>
 
         {/* 1. Downloader Tab */}
         {activeTab === 'downloader' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', flex: 1 }}>
             
             {/* Input Bar */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.01em' }}>PASTE VIDEO OR AUDIO LINK</h2>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em', color: '#ebdcd2' }}>
+                Paste video or audio link
+              </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <input 
-                  type="text" 
-                  className="cyber-input" 
-                  style={{ flex: 1 }} 
-                  placeholder="Paste any YouTube video link, Instagram reel, or other media page..." 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                />
-                <button className="btn-primary" onClick={handleAnalyze} disabled={isAnalyzing}>
-                  <RefreshCw size={18} className={isAnalyzing ? 'spin-anim' : ''} />
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    className="cyber-input" 
+                    style={{ width: '100%', paddingLeft: '2.75rem' }} 
+                    placeholder="Paste any YouTube video link, Instagram reel, or other media page..." 
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                  />
+                  <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '1.15rem', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+                <button className="btn-primary" onClick={handleAnalyze} disabled={isAnalyzing} style={{ minWidth: '130px' }}>
+                  <RefreshCw size={16} className={isAnalyzing ? 'spin-anim' : ''} />
                   {isAnalyzing ? 'Scanning...' : 'Scan Link'}
                 </button>
               </div>
             </div>
 
-            {/* Media Info Extraction Card */}
+            {/* Media Info Card */}
             {analyzedMedia && (
-              <div className="cyber-card" style={{ display: 'flex', gap: '1.75rem', flex: 1, maxHeight: '420px', minHeight: '340px' }}>
+              <div className="cyber-card" style={{ display: 'flex', gap: '2rem', flex: 1, maxHeight: '420px', minHeight: '340px' }}>
                 
                 {/* Left Side: Thumbnail Preview */}
-                <div style={{ width: '40%', height: '100%', position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-slate)' }}>
+                <div style={{ width: '38%', height: '100%', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-slate)' }}>
                   {analyzedMedia.metadata.thumbnail_url ? (
                     <img 
                       src={analyzedMedia.metadata.thumbnail_url} 
@@ -737,18 +760,18 @@ export default function App() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                     />
                   ) : (
-                    <div style={{ display: 'flex', width: '100%', height: '100%', background: '#090b11', alignItems: 'center', justifyContent: 'center' }}>
-                      <Download size={48} color="rgba(255, 255, 255, 0.05)" />
+                    <div style={{ display: 'flex', width: '100%', height: '100%', background: '#0c0b0a', alignItems: 'center', justifyContent: 'center' }}>
+                      <Download size={40} color="rgba(235, 220, 210, 0.03)" />
                     </div>
                   )}
                   <div style={{
                     position: 'absolute',
                     bottom: '0.75rem',
                     right: '0.75rem',
-                    background: 'rgba(0, 0, 0, 0.8)',
+                    background: 'rgba(12, 11, 10, 0.85)',
                     padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
+                    borderRadius: '4px',
+                    fontSize: '0.72rem',
                     fontWeight: 600
                   }} className="mono-metric">
                     {formatDuration(analyzedMedia.metadata.duration)}
@@ -759,13 +782,12 @@ export default function App() {
                     position: 'absolute',
                     top: '0.75rem',
                     left: '0.75rem',
-                    background: 'rgba(99, 102, 241, 0.95)',
+                    background: 'var(--accent-yellow)',
                     padding: '3px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.7rem',
+                    borderRadius: '3px',
+                    fontSize: '0.68rem',
                     fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    color: '#fff'
+                    color: '#0c0b0a'
                   }}>
                     {analyzedMedia.metadata.extractor.toUpperCase()}
                   </div>
@@ -774,23 +796,23 @@ export default function App() {
                 {/* Right Side: Options & Preset Picker */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.5rem', lineHeight: '1.3', color: '#fff' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.4rem', lineHeight: '1.3', color: '#ebdcd2' }}>
                       {analyzedMedia.metadata.title}
                     </h3>
-                    <p style={{ color: 'var(--text-sub)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                    <p style={{ color: 'var(--text-sub)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
                       By {analyzedMedia.metadata.uploader || 'Unknown Creator'}
                     </p>
 
                     {/* Format & Quality Selector */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                       {/* 1. Download Type Selector */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>DOWNLOAD TYPE</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>Download Type</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                           <button 
                             type="button" 
                             className={downloadType === 'video' ? 'btn-primary' : 'btn-secondary'} 
-                            style={{ padding: '0.45rem', fontSize: '0.75rem', border: downloadType === 'video' ? '1px solid var(--accent-indigo)' : '1px solid var(--border-slate)' }}
+                            style={{ padding: '0.5rem', fontSize: '0.78rem' }}
                             onClick={() => setDownloadType('video')}
                           >
                             Video File
@@ -798,7 +820,7 @@ export default function App() {
                           <button 
                             type="button" 
                             className={downloadType === 'audio' ? 'btn-primary' : 'btn-secondary'} 
-                            style={{ padding: '0.45rem', fontSize: '0.75rem', border: downloadType === 'audio' ? '1px solid var(--accent-indigo)' : '1px solid var(--border-slate)' }}
+                            style={{ padding: '0.5rem', fontSize: '0.78rem' }}
                             onClick={() => setDownloadType('audio')}
                           >
                             Audio Extraction
@@ -809,12 +831,13 @@ export default function App() {
                       {downloadType === 'video' ? (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                           {/* Video Format Selection */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>FORMAT</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>Format</label>
                             <select 
                               className="cyber-input"
                               value={videoFormat}
                               onChange={(e: any) => setVideoFormat(e.target.value)}
+                              style={{ width: '100%', fontSize: '0.85rem' }}
                             >
                               <option value="mp4">.mp4 (Universal)</option>
                               <option value="mkv">.mkv (Raw Merged)</option>
@@ -822,12 +845,13 @@ export default function App() {
                           </div>
 
                           {/* Video Quality Selection */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>QUALITY OPTIONS</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>Quality Options</label>
                             <select 
                               className="cyber-input"
                               value={videoQuality}
                               onChange={(e: any) => setVideoQuality(e.target.value)}
+                              style={{ width: '100%', fontSize: '0.85rem' }}
                             >
                               {getDetectedQualities().map((q) => (
                                 <option key={q.value} value={q.value}>
@@ -839,12 +863,13 @@ export default function App() {
                         </div>
                       ) : (
                         /* Audio Format Selection */
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                          <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>FORMAT</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>Format</label>
                           <select 
                             className="cyber-input"
                             value={audioFormat}
                             onChange={(e: any) => setAudioFormat(e.target.value)}
+                            style={{ width: '100%', fontSize: '0.85rem' }}
                           >
                             <option value="mp3">.mp3 (Universal 320kbps)</option>
                             <option value="wav">.wav (Lossless Studio Waveform)</option>
@@ -855,12 +880,13 @@ export default function App() {
 
                     {/* Advanced Cookie/Browser Selection (Available in Advanced Mode) */}
                     {advancedMode && analyzedMedia.capabilities.supports_login && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>BROWSER TO LOAD LOGIN COOKIES FROM</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-sub)', fontWeight: 600 }}>Browser for login cookies</label>
                         <select 
                           className="cyber-input"
                           value={settings.cookies_browser}
                           onChange={(e) => handleSaveSettings({ ...settings, cookies_browser: e.target.value })}
+                          style={{ width: '100%', fontSize: '0.85rem' }}
                         >
                           <option value="">None (Public Content Only)</option>
                           <option value="chrome">Google Chrome</option>
@@ -873,12 +899,12 @@ export default function App() {
                   </div>
 
                   {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setAnalyzedMedia(null)}>
                       Cancel
                     </button>
                     <button className="btn-primary" style={{ flex: 2 }} onClick={handleStartDownload}>
-                      <Download size={18} />
+                      <Download size={16} />
                       Download Now
                     </button>
                   </div>
@@ -889,12 +915,12 @@ export default function App() {
             {/* Guide Card (if empty) */}
             {!analyzedMedia && (
               <div className="cyber-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', flex: 1, borderStyle: 'dashed', background: 'transparent' }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-slate)' }}>
-                  <Download size={24} color="var(--text-sub)" />
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(235, 220, 210, 0.01)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-slate)' }}>
+                  <Download size={24} color="var(--text-muted)" style={{ opacity: 0.6 }} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <h3 style={{ fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>Ready to Download</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Paste any link in the bar above and click "Scan Link" to pick resolutions.</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Paste any link in the bar above and click "Scan Link" to choose quality and formats.</p>
                 </div>
               </div>
             )}
@@ -905,7 +931,7 @@ export default function App() {
         {activeTab === 'queue' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>ACTIVE DOWNLOADS</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Active Downloads</h2>
               <button className="btn-danger" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={handleClearQueue} disabled={queue.length === 0}>
                 <Trash2 size={14} />
                 Clear Completed
@@ -928,12 +954,12 @@ export default function App() {
                           {task.file_path ? task.file_path.split('/').pop() : task.url}
                         </h4>
                         <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-sub)', alignItems: 'center' }}>
-                          <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                            {task.task_type.type === 'DownloadVideo' ? 'VIDEO' : 'AUDIO-ONLY'}
+                          <span style={{ background: 'rgba(235, 220, 210, 0.04)', padding: '1px 6px', borderRadius: '3px', fontSize: '0.7rem' }}>
+                            {task.task_type.type === 'DownloadVideo' ? 'VIDEO' : 'AUDIO'}
                           </span>
                           <span style={{ 
                             color: task.status === 'Downloading' ? 'var(--accent-green)' : 
-                                   task.status === 'Pending' ? 'var(--accent-indigo)' :
+                                   task.status === 'Pending' ? 'var(--accent-yellow)' :
                                    task.status === 'Completed' ? 'var(--accent-green)' :
                                    task.status === 'Failed' ? 'var(--accent-rose)' : 'var(--accent-amber)',
                             fontWeight: 700 
@@ -955,7 +981,7 @@ export default function App() {
                             Resume
                           </button>
                         )}
-                        <button className="btn-danger" style={{ padding: '0.45rem', borderRadius: '8px' }} onClick={() => handleDeleteTask(task.id)}>
+                        <button className="btn-danger" style={{ padding: '0.45rem', borderRadius: '4px' }} onClick={() => handleDeleteTask(task.id)}>
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -979,8 +1005,8 @@ export default function App() {
 
                     {/* Error display */}
                     {task.status === 'Failed' && task.error_msg && (
-                      <div style={{ background: 'rgba(244, 63, 94, 0.03)', border: '1px solid rgba(244, 63, 94, 0.15)', padding: '0.6rem 0.85rem', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--accent-rose)', lineHeight: '1.4' }}>
-                        Issue: {task.error_msg}
+                      <div style={{ background: 'rgba(178, 58, 58, 0.03)', border: '1px solid rgba(178, 58, 58, 0.15)', padding: '0.6rem 0.85rem', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--accent-rose)', lineHeight: '1.4' }}>
+                        Error: {task.error_msg}
                       </div>
                     )}
                   </div>
@@ -994,7 +1020,7 @@ export default function App() {
         {activeTab === 'history' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>SAVED LIBRARY</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Saved Library</h2>
               <button className="btn-danger" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem' }} onClick={handleClearHistory} disabled={history.length === 0}>
                 <Trash2 size={14} />
                 Clear History
@@ -1032,12 +1058,12 @@ export default function App() {
                   <div key={item.id} className="cyber-card" style={{ padding: '1rem 1.25rem', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
                     
                     {/* Tiny Thumbnail */}
-                    <div style={{ width: '72px', height: '48px', background: '#090b11', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border-slate)' }}>
+                    <div style={{ width: '72px', height: '48px', background: '#0c0b0a', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--border-slate)' }}>
                       {item.thumbnail_path ? (
                         <img src={item.thumbnail_path} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                          <Play size={16} color="rgba(255,255,255,0.1)" />
+                          <Play size={16} color="rgba(235, 220, 210, 0.05)" />
                         </div>
                       )}
                     </div>
@@ -1048,7 +1074,7 @@ export default function App() {
                         {item.title}
                       </h4>
                       <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: 'var(--text-sub)', alignItems: 'center' }} className="mono-metric">
-                        <span style={{ color: 'var(--accent-indigo)', fontWeight: 700 }}>{item.source_site?.toUpperCase()}</span>
+                        <span style={{ color: 'var(--accent-yellow)', fontWeight: 700 }}>{item.source_site?.toUpperCase()}</span>
                         <span>{formatBytes(item.file_size)}</span>
                         <span>{formatDuration(item.duration)}</span>
                         <span>{item.completed_at ? new Date(item.completed_at).toLocaleDateString() : ''}</span>
@@ -1061,7 +1087,7 @@ export default function App() {
                         <FolderOpen size={14} />
                         Locate File
                       </button>
-                      <button className="btn-danger" style={{ padding: '0.45rem', borderRadius: '8px' }} onClick={() => handleDeleteHistoryItem(item.id)}>
+                      <button className="btn-danger" style={{ padding: '0.45rem', borderRadius: '4px' }} onClick={() => handleDeleteHistoryItem(item.id)}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -1077,22 +1103,22 @@ export default function App() {
         {activeTab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', flex: 1, overflowY: 'auto' }}>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>APPLICATION SETTINGS</h2>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-sub)' }}>Configure folder locations, maximum downloads, and check system health.</p>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem' }}>Application Settings</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-sub)' }}>Configure folder locations, max threads, and monitor system diagnostics.</p>
             </div>
 
             {/* Advanced Toggle */}
             <div className="cyber-card" style={{ padding: '1.15rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                <Sliders size={20} color="var(--accent-indigo)" />
+                <Sliders size={20} color="var(--accent-yellow)" />
                 <div>
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Show Advanced Settings</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Exposes cookie extractions, diagnostic reports, and custom engine settings.</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Exposes cookie extractions, diagnostic reports, and custom engine flags.</p>
                 </div>
               </div>
               <div style={{ cursor: 'pointer' }} onClick={() => handleSaveSettings({ ...settings, advanced_mode: !advancedMode })}>
                 {advancedMode ? (
-                  <ToggleRight size={38} color="var(--accent-indigo)" />
+                  <ToggleRight size={38} color="var(--accent-yellow)" />
                 ) : (
                   <ToggleLeft size={38} color="var(--text-muted)" />
                 )}
@@ -1104,7 +1130,7 @@ export default function App() {
               
               {/* Output Directory */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>DOWNLOAD FOLDER DESTINATION</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Download folder destination</label>
                 <input 
                   type="text" 
                   className="cyber-input" 
@@ -1115,7 +1141,7 @@ export default function App() {
 
               {/* Concurrency Limit */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>MAX SIMULTANEOUS DOWNLOADS</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Max simultaneous downloads</label>
                 <select 
                   className="cyber-input"
                   value={settings.max_concurrent_tasks}
@@ -1130,7 +1156,7 @@ export default function App() {
 
               {/* Duplicate checking */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>DUPLICATE DETECT MODE</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Duplicate detect mode</label>
                 <select 
                   className="cyber-input"
                   value={settings.skip_previously_downloaded.toString()}
@@ -1143,7 +1169,7 @@ export default function App() {
 
               {/* Scraper updates channel */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>ENGINE STABILITY CHANNEL</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Engine stability channel</label>
                 <select 
                   className="cyber-input"
                   value={settings.yt_dlp_channel}
@@ -1160,12 +1186,12 @@ export default function App() {
             {/* Advanced Section */}
             {advancedMode && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', borderTop: '1px solid var(--border-slate)', paddingTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '0.95rem', color: 'var(--accent-indigo)', fontWeight: 700 }}>ADVANCED PARAMETERS</h3>
+                <h3 style={{ fontSize: '0.95rem', color: 'var(--accent-yellow)', fontWeight: 700 }}>Advanced Parameters</h3>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   {/* Custom yt-dlp path */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>CUSTOM YT-DLP EXECUTABLE PATH</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Custom yt-dlp path</label>
                     <input 
                       type="text" 
                       className="cyber-input" 
@@ -1177,7 +1203,7 @@ export default function App() {
 
                   {/* Custom flags */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>APPEND CUSTOM YT-DLP CLI FLAGS</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-sub)', fontWeight: 600 }}>Append custom CLI flags</label>
                     <input 
                       type="text" 
                       className="cyber-input" 
@@ -1192,7 +1218,7 @@ export default function App() {
                 {selfCheck && (
                   <div className="cyber-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}>
-                      <h4 style={{ fontSize: '0.85rem', fontWeight: 700 }}>SYSTEM HEALTH & DIAGNOSTICS</h4>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 700 }}>System Health & Diagnostics</h4>
                       <button className="btn-secondary" style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem' }} onClick={triggerSelfCheck}>
                         Refresh Checks
                       </button>
@@ -1226,10 +1252,10 @@ export default function App() {
 
       {/* Toast Notification Popups */}
       {toast && (
-        <div className="cyber-toast" style={{ borderColor: toast.type === 'success' ? 'var(--accent-green)' : toast.type === 'error' ? 'var(--accent-rose)' : 'var(--accent-indigo)' }}>
-          {toast.type === 'success' && <CheckCircle size={18} color="var(--accent-green)" />}
-          {toast.type === 'error' && <AlertTriangle size={18} color="var(--accent-rose)" />}
-          {toast.type === 'info' && <Cpu size={18} color="var(--accent-indigo)" />}
+        <div className="cyber-toast" style={{ borderColor: toast.type === 'success' ? 'var(--accent-green)' : toast.type === 'error' ? 'var(--accent-rose)' : 'var(--accent-yellow)' }}>
+          {toast.type === 'success' && <CheckCircle size={16} color="var(--accent-green)" />}
+          {toast.type === 'error' && <AlertTriangle size={16} color="var(--accent-rose)" />}
+          {toast.type === 'info' && <Cpu size={16} color="var(--accent-yellow)" />}
           <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{toast.message}</span>
         </div>
       )}
