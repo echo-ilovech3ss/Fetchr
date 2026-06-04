@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use rusqlite::{params, Connection, Result};
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};

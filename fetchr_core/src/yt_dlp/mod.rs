@@ -4,9 +4,8 @@ pub mod progress_parser;
 pub use bin_manager::{BinManager, UpdateChannel};
 pub use progress_parser::{CompositeProgressParser, DownloadProgress, ProgressParser};
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use anyhow::{anyhow, Result};
 use serde::{Serialize, Deserialize};
@@ -61,7 +60,6 @@ impl YtDlpEngine {
         #[cfg(target_os = "windows")]
         {
             const CREATE_NO_WINDOW: u32 = 0x08000000;
-            use std::os::windows::process::CommandExt;
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
 

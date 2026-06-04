@@ -104,7 +104,7 @@ pub fn resolve_path_collision(directory: &Path, filename: &str, extension: &str)
         };
     }
 
-    let mut target_path = base_dir.join(&final_filename);
+    let target_path = base_dir.join(&final_filename);
 
     // If it doesn't exist, we are good to go!
     if !target_path.exists() {

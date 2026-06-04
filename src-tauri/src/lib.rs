@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 use serde_json::json;
 
-use fetchr_core::db::{DbManager, Task, TaskStatus, TaskType, HistoryItem};
+use fetchr_core::db::{DbManager, Task, TaskType, HistoryItem};
 use fetchr_core::yt_dlp::{BinManager, YtDlpEngine, UpdateChannel};
 use fetchr_core::queue::QueueOrchestrator;
 use fetchr_core::capabilities::get_capabilities;

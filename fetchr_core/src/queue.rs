@@ -236,7 +236,6 @@ impl QueueOrchestrator {
         #[cfg(target_os = "windows")]
         {
             const CREATE_NO_WINDOW: u32 = 0x08000000;
-            use std::os::windows::process::CommandExt;
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
         cmd.arg("--newline")
@@ -390,7 +389,7 @@ impl QueueOrchestrator {
         cmd.stdout(Stdio::piped())
            .stderr(Stdio::piped());
 
-        let mut child = match cmd.spawn() {
+        let child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
                 self.mark_task_failed(&mut task, &format!("Process spawn error: {}", e)).await;
@@ -487,7 +486,7 @@ impl QueueOrchestrator {
         } else {
             // Process failed
             let mut stderr_content = String::new();
-            if let Some(mut stderr) = child_process.stderr.take() {
+            if let Some(stderr) = child_process.stderr.take() {
                 let mut err_reader = BufReader::new(stderr).lines();
                 while let Ok(Some(line)) = err_reader.next_line().await {
                     stderr_content.push_str(&line);
