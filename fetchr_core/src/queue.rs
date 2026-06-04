@@ -261,7 +261,7 @@ impl QueueOrchestrator {
         // Inject download archive if checked in settings
         let skip_duplicates = self.db.get_setting("skip_previously_downloaded").unwrap_or(None);
         if skip_duplicates.as_deref() == Some("true") {
-            let archive_path = downloads_dir.join(".fetchr_download_archive.txt");
+            let archive_path = downloads_dir.join(".videosaver_download_archive.txt");
             cmd.arg("--download-archive").arg(archive_path);
         }
 
@@ -357,9 +357,10 @@ impl QueueOrchestrator {
                         
                         cmd.arg("--merge-output-format").arg(container);
                         if container == "mp4" {
-                            cmd.arg("--recode-video").arg("mp4");
-                            cmd.arg("--postprocessor-args").arg("ffmpeg:-c:v libx264 -c:a aac -pix_fmt yuv420p");
-                            info!("Enabling universal H.264/AAC/YUV420P transcoding for strict QuickTime/Windows Media Player compatibility.");
+                            let encoder = self.bin_manager.get_best_h264_encoder();
+                            let post_args = format!("ffmpeg:-c:v {} -c:a aac -pix_fmt yuv420p", encoder);
+                            cmd.arg("--postprocessor-args").arg(&post_args);
+                            info!("Enabling universal {}/AAC/YUV420P transcoding for strict compatibility.", encoder);
                         }
                     } else {
                         cmd.arg("-f").arg("bestvideo+bestaudio/best");

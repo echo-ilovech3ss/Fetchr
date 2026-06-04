@@ -271,7 +271,7 @@ export default function App() {
       
       setTimeout(() => {
         setIsOnboarding(false);
-        showToast('Ready! Welcome to Fetchr.', 'success');
+        showToast('Ready! Welcome to Video Saver.', 'success');
       }, 1500);
     } catch (e) {
       showToast('Setup failed: ' + e, 'error');
@@ -632,7 +632,7 @@ export default function App() {
               <Download size={18} color="#0c0b0a" />
             </div>
             <h1 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ebdcd2' }}>
-              Fetchr
+              Video Saver
             </h1>
           </div>
 

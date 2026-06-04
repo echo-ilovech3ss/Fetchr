@@ -10,15 +10,15 @@ pub fn init_logger(portable_mode: bool, debug: bool) -> Result<WorkerGuard> {
         PathBuf::from("./logs")
     } else {
         match dirs::home_dir() {
-            Some(home) => home.join(".fetchr").join("logs"),
-            None => PathBuf::from("./.fetchr").join("logs"),
+            Some(home) => home.join(".videosaver").join("logs"),
+            None => PathBuf::from("./.videosaver").join("logs"),
         }
     };
 
     std::fs::create_dir_all(&logs_dir)?;
 
-    // Daily rotating logs: fetchr.log.2026-05-27 etc.
-    let file_appender = tracing_appender::rolling::daily(&logs_dir, "fetchr.log");
+    // Daily rotating logs: videosaver.log.2026-05-27 etc.
+    let file_appender = tracing_appender::rolling::daily(&logs_dir, "videosaver.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     // Dynamic filters

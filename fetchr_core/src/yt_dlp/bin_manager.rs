@@ -51,8 +51,8 @@ impl BinManager {
             PathBuf::from("./bin")
         } else {
             match dirs::home_dir() {
-                Some(home) => home.join(".fetchr").join("bin"),
-                None => PathBuf::from("./.fetchr").join("bin"),
+                Some(home) => home.join(".videosaver").join("bin"),
+                None => PathBuf::from("./.videosaver").join("bin"),
             }
         };
         Self { bin_dir }
@@ -117,6 +117,61 @@ impl BinManager {
         }
 
         Err(anyhow!("ffmpeg binary could not be resolved."))
+    }
+
+    /// Dynamically detects the best available H.264 hardware encoder on the system, falling back to libx264.
+    pub fn get_best_h264_encoder(&self) -> String {
+        let ffmpeg_path = match self.resolve_ffmpeg_binary() {
+            Ok(p) => p,
+            Err(_) => {
+                tracing::warn!("Could not resolve ffmpeg binary to query encoders. Falling back to libx264.");
+                return "libx264".to_string();
+            }
+        };
+
+        let mut cmd = Command::new(&ffmpeg_path);
+        #[cfg(target_os = "windows")]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let output = match cmd.arg("-encoders").output() {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::warn!("Failed to run ffmpeg -encoders: {}. Falling back to libx264.", e);
+                return "libx264".to_string();
+            }
+        };
+
+        if !output.status.success() {
+            tracing::warn!("ffmpeg -encoders returned non-zero status. Falling back to libx264.");
+            return "libx264".to_string();
+        }
+
+        let stdout_str = String::from_utf8_lossy(&output.stdout);
+
+        // Priority check for hardware/GPU accelerated encoders
+        if stdout_str.contains("h264_videotoolbox") {
+            tracing::info!("Detected macOS GPU-accelerated encoder: h264_videotoolbox");
+            return "h264_videotoolbox".to_string();
+        }
+        if stdout_str.contains("h264_nvenc") {
+            tracing::info!("Detected NVIDIA GPU-accelerated encoder: h264_nvenc");
+            return "h264_nvenc".to_string();
+        }
+        if stdout_str.contains("h264_amf") {
+            tracing::info!("Detected AMD GPU-accelerated encoder: h264_amf");
+            return "h264_amf".to_string();
+        }
+        if stdout_str.contains("h264_qsv") {
+            tracing::info!("Detected Intel GPU-accelerated encoder: h264_qsv");
+            return "h264_qsv".to_string();
+        }
+
+        tracing::info!("No hardware-accelerated H.264 encoder detected. Using software encoder: libx264");
+        "libx264".to_string()
     }
 
     /// Resolves ffprobe path checking local downloaded bin, then system PATH.
