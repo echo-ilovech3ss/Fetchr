@@ -997,7 +997,7 @@ export default function App() {
                           <span>{task.progress.toFixed(1)}%</span>
                           <div style={{ display: 'flex', gap: '1rem' }}>
                             {task.speed && <span>{task.speed}</span>}
-                            {task.eta && <span>{task.eta} left</span>}
+                            {task.eta && <span>{task.eta.includes(':') ? `${task.eta} left` : task.eta}</span>}
                           </div>
                         </div>
                       </div>

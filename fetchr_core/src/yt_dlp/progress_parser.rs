@@ -138,6 +138,25 @@ impl CompositeProgressParser {
 
 impl ProgressParser for CompositeProgressParser {
     fn parse(&self, line: &str) -> Option<DownloadProgress> {
+        if line.contains("[VideoConvertor]") || line.contains("[Merger]") || line.contains("[ffmpeg]") {
+            return Some(DownloadProgress {
+                percentage: 100.0,
+                speed: Some("Transcoding".to_string()),
+                eta: Some("GPU active".to_string()),
+                downloaded_bytes: None,
+                total_bytes: None,
+            });
+        }
+        if line.contains("[ExtractAudio]") {
+            return Some(DownloadProgress {
+                percentage: 100.0,
+                speed: Some("Extracting".to_string()),
+                eta: Some("Audio".to_string()),
+                downloaded_bytes: None,
+                total_bytes: None,
+            });
+        }
+
         self.json_parser.parse(line)
             .or_else(|| self.regex_parser.parse(line))
     }
