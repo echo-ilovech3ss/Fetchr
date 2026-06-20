@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { 
@@ -17,7 +17,8 @@ import {
   ToggleRight,
   Cpu,
   AlertTriangle,
-  Radio
+  Radio,
+  Menu
 } from 'lucide-react';
 
 // ==========================================
@@ -77,6 +78,50 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'downloader' | 'queue' | 'history' | 'settings'>('downloader');
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  
+  const touchStartXRef = useRef(0);
+  const touchStartYRef = useRef(0);
+  
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchEndX - touchStartXRef.current;
+      const diffY = touchEndY - touchStartYRef.current;
+
+      // Swipe from left edge (start X <= 80) to right (diffX > 70) opens the sidebar
+      if (touchStartXRef.current <= 80 && diffX > 70 && Math.abs(diffY) < 50) {
+        setIsSidebarOpen(true);
+      }
+      
+      // Swipe from right to left (diffX < -70) closes it
+      if (diffX < -70 && Math.abs(diffY) < 50) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  const selectTab = (tab: 'downloader' | 'queue' | 'history' | 'settings') => {
+    setActiveTab(tab);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
+  };
 
   // Onboarding Setup Wizard State
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
@@ -618,18 +663,61 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative' }}>
+      {/* Mobile Menu Button */}
+      <button 
+        className="mobile-menu-btn" 
+        onClick={() => setIsSidebarOpen(true)}
+        style={{
+          position: 'absolute',
+          top: '1rem',
+          left: '1rem',
+          background: '#131110',
+          border: '1px solid var(--border-slate)',
+          borderRadius: '6px',
+          width: '42px',
+          height: '42px',
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+      >
+        <Menu size={22} color="var(--accent-yellow)" />
+      </button>
+
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 90
+          }}
+        />
+      )}
       
       {/* Sidebar Navigation */}
-      <aside style={{
-        width: '260px',
-        background: '#131110',
-        borderRight: '1px solid var(--border-slate)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '2rem 1.25rem',
-        justifyContent: 'space-between',
-        zIndex: 20
-      }}>
+      <aside 
+        className={isSidebarOpen ? 'open' : ''}
+        style={{
+          width: '260px',
+          background: '#131110',
+          borderRight: '1px solid var(--border-slate)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '2rem 1.25rem',
+          justifyContent: 'space-between',
+          zIndex: 20
+        }}
+      >
         <div>
           {/* Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
@@ -648,15 +736,15 @@ export default function App() {
               Video Saver
             </h1>
           </div>
-
+ 
           {/* Navigation Links */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div className={`nav-tab ${activeTab === 'downloader' ? 'active' : ''}`} onClick={() => setActiveTab('downloader')}>
+            <div className={`nav-tab ${activeTab === 'downloader' ? 'active' : ''}`} onClick={() => selectTab('downloader')}>
               <Radio size={18} />
               <span style={{ fontSize: '0.9rem' }}>Download Media</span>
             </div>
             
-            <div className={`nav-tab ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => setActiveTab('queue')}>
+            <div className={`nav-tab ${activeTab === 'queue' ? 'active' : ''}`} onClick={() => selectTab('queue')}>
               <Activity size={18} />
               <span style={{ 
                 fontSize: '0.9rem',
@@ -674,12 +762,12 @@ export default function App() {
               </span>
             </div>
             
-            <div className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
+            <div className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => selectTab('history')}>
               <Layers size={18} />
               <span style={{ fontSize: '0.9rem' }}>Saved Library</span>
             </div>
             
-            <div className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+            <div className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => selectTab('settings')}>
               <Settings size={18} />
               <span style={{ fontSize: '0.9rem' }}>App Settings</span>
             </div>

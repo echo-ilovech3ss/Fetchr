@@ -277,3 +277,41 @@ select.cyber-input {
   background-size: 0.85rem;
   padding-right: 2.5rem;
 }
+
+/* Responsive Mobile Sidebar layout */
+@media (max-width: 768px) {
+  aside {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    z-index: 100 !important;
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+  }
+  
+  aside.open {
+    transform: translateX(0) !important;
+  }
+  
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+  
+  .sidebar-backdrop {
+    display: block !important;
+  }
+  
+  main {
+    padding: 5.5rem 1.5rem 2.5rem 1.5rem !important;
+  }
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
