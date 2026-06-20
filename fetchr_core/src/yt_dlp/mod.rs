@@ -86,14 +86,27 @@ impl YtDlpEngine {
         cmd.stdout(Stdio::piped())
            .stderr(Stdio::piped());
 
-        let output = cmd.output().await?;
+        let output = match cmd.output().await {
+            Ok(out) => out,
+            Err(e) => {
+                tracing::warn!("Failed to spawn/execute yt-dlp: {}. Falling back to oEmbed metadata extraction.", e);
+                return self.extract_metadata_oembed(url).await;
+            }
+        };
 
         if !output.status.success() {
             let err = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            return Err(anyhow!("Metadata extraction failed: {}", err));
+            tracing::warn!("yt-dlp metadata extraction failed: {}. Falling back to oEmbed metadata extraction.", err);
+            return self.extract_metadata_oembed(url).await;
         }
 
-        let raw_json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+        let raw_json: serde_json::Value = match serde_json::from_slice(&output.stdout) {
+            Ok(json) => json,
+            Err(e) => {
+                tracing::warn!("Failed to parse yt-dlp JSON output: {}. Falling back to oEmbed metadata extraction.", e);
+                return self.extract_metadata_oembed(url).await;
+            }
+        };
 
         // Map raw JSON into clean Fetchr structs
         let title = raw_json["title"].as_str().unwrap_or("Untitled Video").to_string();
@@ -159,12 +172,13 @@ impl YtDlpEngine {
 
     /// Extract basic metadata via public oEmbed API for YouTube, Vimeo, or TikTok.
     pub async fn extract_metadata_oembed(&self, url: &str) -> Result<MediaMetadata> {
+        let encoded_url: String = url::form_urlencoded::byte_serialize(url.as_bytes()).collect();
         let oembed_url = if url.contains("youtube.com") || url.contains("youtu.be") {
-            format!("https://www.youtube.com/oembed?url={}&format=json", url)
+            format!("https://www.youtube.com/oembed?url={}&format=json", encoded_url)
         } else if url.contains("vimeo.com") {
-            format!("https://vimeo.com/api/oembed.json?url={}", url)
+            format!("https://vimeo.com/api/oembed.json?url={}", encoded_url)
         } else if url.contains("tiktok.com") {
-            format!("https://www.tiktok.com/oembed?url={}", url)
+            format!("https://www.tiktok.com/oembed?url={}", encoded_url)
         } else {
             return Err(anyhow!("Unsupported platform for offline/sandbox scanning. Direct yt-dlp required."));
         };
@@ -206,3 +220,48 @@ impl YtDlpEngine {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::yt_dlp::bin_manager::BinManager;
+
+    #[tokio::test]
+    async fn test_youtube_metadata() {
+        let home = dirs::home_dir().unwrap();
+        let bin_dir = home.join(".videosaver").join("bin");
+        let bin_manager = BinManager::new(bin_dir);
+        let engine = YtDlpEngine::new(bin_manager, None);
+        let url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        
+        match engine.extract_metadata(url, None).await {
+            Ok(meta) => {
+                println!("Metadata: {:?}", meta);
+                assert!(meta.extractor == "youtube" || meta.extractor == "generic");
+            }
+            Err(e) => {
+                panic!("Failed to extract metadata: {}", e);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_youtube_metadata_oembed() {
+        let home = dirs::home_dir().unwrap();
+        let bin_dir = home.join(".videosaver").join("bin");
+        let bin_manager = BinManager::new(bin_dir);
+        let engine = YtDlpEngine::new(bin_manager, None);
+        let url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        
+        match engine.extract_metadata_oembed(url).await {
+            Ok(meta) => {
+                println!("oEmbed Metadata: {:?}", meta);
+                assert_eq!(meta.extractor, "youtube");
+            }
+            Err(e) => {
+                panic!("Failed to extract oEmbed metadata: {}", e);
+            }
+        }
+    }
+}
+
