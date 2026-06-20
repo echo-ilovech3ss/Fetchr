@@ -22,3 +22,4 @@ fetchr_core = { path = "../fetchr_core" }
 anyhow = "1"
 dirs = "5"
 tracing-appender = "0.2"
+tracing = "0.1"
