@@ -227,8 +227,22 @@ impl QueueOrchestrator {
         };
         std::fs::create_dir_all(&downloads_dir).ok();
 
-        // 3. Resolve yt-dlp binary
+        // 3. Resolve yt-dlp binary (Android bypass due to SELinux process block)
         let custom_yt_dlp = self.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
+
+        #[cfg(target_os = "android")]
+        {
+            info!("Running on Android: bypassing yt-dlp execution and falling back to direct HTTP download.");
+            if let Err(err) = self.execute_direct_download(task.clone(), downloads_dir).await {
+                self.mark_task_failed(&mut task, &format!("Direct download error: {}", err)).await;
+            }
+            return Ok(());
+        }
+
+        #[cfg(target_os = "android")]
+        let yt_dlp_path = PathBuf::new();
+
+        #[cfg(not(target_os = "android"))]
         let yt_dlp_path = match self.bin_manager.resolve_yt_dlp_binary(custom_yt_dlp.as_deref()) {
             Ok(p) => p,
             Err(e) => {
