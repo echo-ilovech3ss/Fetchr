@@ -212,7 +212,18 @@ impl QueueOrchestrator {
         let downloads_setting = self.db.get_setting("download_directory").unwrap_or(None);
         let downloads_dir = match downloads_setting {
             Some(d) => PathBuf::from(d),
-            None => dirs::download_dir().unwrap_or_else(|| PathBuf::from("./downloads")),
+            None => {
+                #[cfg(target_os = "android")]
+                {
+                    self.bin_manager.bin_dir.parent()
+                        .map(|p| p.join("downloads"))
+                        .unwrap_or_else(|| PathBuf::from("/data/local/tmp/downloads"))
+                }
+                #[cfg(not(target_os = "android"))]
+                {
+                    dirs::download_dir().unwrap_or_else(|| PathBuf::from("./downloads"))
+                }
+            }
         };
         std::fs::create_dir_all(&downloads_dir).ok();
 

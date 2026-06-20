@@ -164,9 +164,20 @@ async fn get_settings(state: State<'_, AppState>) -> Result<serde_json::Value, S
     let custom_flags = state.db.get_setting("custom_yt_dlp_flags").unwrap_or(None);
     let custom_yt = state.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
 
-    let default_dl = dirs::download_dir()
-        .map(|d| d.to_string_lossy().to_string())
-        .unwrap_or_else(|| "./downloads".to_string());
+    let default_dl = {
+        #[cfg(target_os = "android")]
+        {
+            state.bin_manager.bin_dir.parent()
+                .map(|p| p.join("downloads").to_string_lossy().to_string())
+                .unwrap_or_else(|| "/data/local/tmp/downloads".to_string())
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            dirs::download_dir()
+                .map(|d| d.to_string_lossy().to_string())
+                .unwrap_or_else(|| "./downloads".to_string())
+        }
+    };
 
     Ok(json!({
         "download_directory": dl_dir.unwrap_or(default_dl),

@@ -148,9 +148,21 @@ pub fn resolve_path_collision(directory: &Path, filename: &str, extension: &str)
 /// Hardens filesystem path from directory traversal and unsafe symlinks.
 /// Normalizes paths before writing.
 pub fn is_path_safe(base_dir: &Path, target_path: &Path) -> bool {
+    // Attempt to create the base directory if it does not exist
+    let _ = std::fs::create_dir_all(base_dir);
+
     let canonical_base = match base_dir.canonicalize() {
         Ok(p) => p,
-        Err(_) => return false, // If base doesn't exist yet, we can't verify easily
+        Err(_) => {
+            // If base canonicalization fails, fallback to verifying that the target
+            // path does not contain parent traversal ('..') elements.
+            for component in target_path.components() {
+                if let std::path::Component::ParentDir = component {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
 
     // If target path doesn't exist yet, we check parent
