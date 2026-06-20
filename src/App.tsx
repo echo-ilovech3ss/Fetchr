@@ -78,12 +78,18 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'downloader' | 'queue' | 'history' | 'settings'>('downloader');
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(window.innerWidth > 768);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
   
   const touchStartXRef = useRef(0);
   const touchStartYRef = useRef(0);
   
   useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
       touchStartXRef.current = e.touches[0].clientX;
       touchStartYRef.current = e.touches[0].clientY;
@@ -107,10 +113,12 @@ export default function App() {
       }
     };
 
+    window.addEventListener('resize', handleResize);
     document.addEventListener('touchstart', handleTouchStart);
     document.addEventListener('touchend', handleTouchEnd);
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
@@ -372,7 +380,7 @@ export default function App() {
       setVideoQuality('best'); // Always default to best quality for each new URL
       showToast('Details loaded successfully.', 'success');
     } catch (e) {
-      showToast('Could not load link details. Check settings or connection.', 'error');
+      showToast(`Could not load link details: ${e}`, 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -715,7 +723,14 @@ export default function App() {
           flexDirection: 'column',
           padding: '2rem 1.25rem',
           justifyContent: 'space-between',
-          zIndex: 20
+          zIndex: 100,
+          position: isMobile ? 'absolute' : 'relative',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          transform: isMobile ? (isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+          transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: isMobile && isSidebarOpen ? '5px 0 25px rgba(0, 0, 0, 0.5)' : 'none'
         }}
       >
         <div>
@@ -811,7 +826,7 @@ export default function App() {
       <main style={{
         flex: 1,
         background: 'radial-gradient(circle at top right, rgba(224, 92, 59, 0.02), transparent 60%), #0c0b0a',
-        padding: '2.5rem 3rem',
+        padding: isMobile ? '4.5rem 1rem 1.5rem 1rem' : '2.5rem 3rem',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
@@ -850,10 +865,26 @@ export default function App() {
 
             {/* Media Info Card */}
             {analyzedMedia && (
-              <div className="cyber-card" style={{ display: 'flex', gap: '2rem', flex: 1, maxHeight: '420px', minHeight: '340px' }}>
+              <div className="cyber-card" style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: isMobile ? '1.25rem' : '2rem', 
+                flex: isMobile ? 'none' : 1, 
+                maxHeight: isMobile ? 'none' : '420px', 
+                minHeight: isMobile ? 'none' : '340px',
+                padding: isMobile ? '1rem' : '1.5rem'
+              }}>
                 
                 {/* Left Side: Thumbnail Preview */}
-                <div style={{ width: '38%', height: '100%', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-slate)' }}>
+                <div style={{ 
+                  width: isMobile ? '100%' : '38%', 
+                  height: isMobile ? '180px' : '100%', 
+                  flexShrink: 0,
+                  position: 'relative', 
+                  borderRadius: '6px', 
+                  overflow: 'hidden', 
+                  border: '1px solid var(--border-slate)' 
+                }}>
                   {analyzedMedia.metadata.thumbnail_url ? (
                     <img 
                       src={analyzedMedia.metadata.thumbnail_url} 
