@@ -45,16 +45,7 @@ pub struct BinManager {
 }
 
 impl BinManager {
-    /// Instantiates a new BinManager, locating target directory based on portable mode flag.
-    pub fn new(portable_mode: bool) -> Self {
-        let bin_dir = if portable_mode {
-            PathBuf::from("./bin")
-        } else {
-            match dirs::home_dir() {
-                Some(home) => home.join(".videosaver").join("bin"),
-                None => PathBuf::from("./.videosaver").join("bin"),
-            }
-        };
+    pub fn new(bin_dir: PathBuf) -> Self {
         Self { bin_dir }
     }
 
@@ -277,5 +268,196 @@ impl BinManager {
         }
 
         Ok(target_path)
+    }
+
+    /// Dynamically download and extract ffmpeg and ffprobe for the current platform.
+    pub async fn download_ffmpeg_and_ffprobe(&self) -> Result<()> {
+        #[cfg(target_os = "android")]
+        {
+            tracing::info!("Auto-updating ffmpeg and ffprobe is not supported natively on Android.");
+            return Ok(());
+        }
+
+        #[cfg(not(target_os = "android"))]
+        {
+            std::fs::create_dir_all(&self.bin_dir)?;
+            let temp_dir = std::env::temp_dir().join("ffmpeg_download");
+            std::fs::create_dir_all(&temp_dir)?;
+
+            #[cfg(target_os = "macos")]
+            {
+                // Download ffmpeg zip
+                let ffmpeg_zip = temp_dir.join("ffmpeg.zip");
+                let response = reqwest::get("https://evermeet.cx/ffmpeg/get/zip").await?;
+                if !response.status().is_success() {
+                    return Err(anyhow!("Failed to fetch macOS ffmpeg: HTTP {}", response.status()));
+                }
+                std::fs::write(&ffmpeg_zip, response.bytes().await?)?;
+
+                // Unzip ffmpeg
+                let extract_status = Command::new("unzip")
+                    .arg("-o")
+                    .arg(&ffmpeg_zip)
+                    .arg("-d")
+                    .arg(&temp_dir)
+                    .status()?;
+                if !extract_status.success() {
+                    return Err(anyhow!("Failed to extract macOS ffmpeg zip"));
+                }
+
+                // Move ffmpeg
+                let ffmpeg_src = temp_dir.join("ffmpeg");
+                let ffmpeg_dest = self.bin_dir.join("ffmpeg");
+                std::fs::rename(&ffmpeg_src, &ffmpeg_dest)?;
+
+                // Download ffprobe zip
+                let ffprobe_zip = temp_dir.join("ffprobe.zip");
+                let response = reqwest::get("https://evermeet.cx/ffmpeg/get/ffprobe/zip").await?;
+                if !response.status().is_success() {
+                    return Err(anyhow!("Failed to fetch macOS ffprobe: HTTP {}", response.status()));
+                }
+                std::fs::write(&ffprobe_zip, response.bytes().await?)?;
+
+                // Unzip ffprobe
+                let extract_status = Command::new("unzip")
+                    .arg("-o")
+                    .arg(&ffprobe_zip)
+                    .arg("-d")
+                    .arg(&temp_dir)
+                    .status()?;
+                if !extract_status.success() {
+                    return Err(anyhow!("Failed to extract macOS ffprobe zip"));
+                }
+
+                // Move ffprobe
+                let ffprobe_src = temp_dir.join("ffprobe");
+                let ffprobe_dest = self.bin_dir.join("ffprobe");
+                std::fs::rename(&ffprobe_src, &ffprobe_dest)?;
+
+                // Set execute permissions
+                use std::os::unix::fs::PermissionsExt;
+                for binary in &["ffmpeg", "ffprobe"] {
+                    let path = self.bin_dir.join(binary);
+                    if let Ok(metadata) = std::fs::metadata(&path) {
+                        let mut permissions = metadata.permissions();
+                        permissions.set_mode(0o755);
+                        std::fs::set_permissions(&path, permissions)?;
+                    }
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                // Download ffmpeg zip from gyan.dev
+                let zip_path = temp_dir.join("ffmpeg.zip");
+                let response = reqwest::get("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip").await?;
+                if !response.status().is_success() {
+                    return Err(anyhow!("Failed to fetch Windows ffmpeg: HTTP {}", response.status()));
+                }
+                std::fs::write(&zip_path, response.bytes().await?)?;
+
+                // Unzip using powershell
+                let extract_status = Command::new("powershell")
+                    .arg("-Command")
+                    .arg(format!(
+                        "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+                        zip_path.to_string_lossy(),
+                        temp_dir.to_string_lossy()
+                    ))
+                    .status()?;
+                if !extract_status.success() {
+                    return Err(anyhow!("Failed to extract Windows ffmpeg zip"));
+                }
+
+                // Locate the binaries inside the extracted folders
+                // The zip contains a folder like `ffmpeg-*-essentials_build/bin/ffmpeg.exe`
+                let mut ffmpeg_found = false;
+                let mut ffprobe_found = false;
+                for entry in std::fs::read_dir(&temp_dir)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_dir() && path.file_name().unwrap_or_default().to_string_lossy().starts_with("ffmpeg-") {
+                        let bin_sub_dir = path.join("bin");
+                        if bin_sub_dir.exists() {
+                            let ffmpeg_exe = bin_sub_dir.join("ffmpeg.exe");
+                            let ffprobe_exe = bin_sub_dir.join("ffprobe.exe");
+                            if ffmpeg_exe.exists() {
+                                std::fs::rename(&ffmpeg_exe, self.bin_dir.join("ffmpeg.exe"))?;
+                                ffmpeg_found = true;
+                            }
+                            if ffprobe_exe.exists() {
+                                std::fs::rename(&ffprobe_exe, self.bin_dir.join("ffprobe.exe"))?;
+                                ffprobe_found = true;
+                            }
+                        }
+                    }
+                }
+
+                if !ffmpeg_found || !ffprobe_found {
+                    return Err(anyhow!("Could not locate ffmpeg.exe or ffprobe.exe inside extracted archive"));
+                }
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                // Download ffmpeg tar.xz from johnvansickle
+                let tar_path = temp_dir.join("ffmpeg.tar.xz");
+                let response = reqwest::get("https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz").await?;
+                if !response.status().is_success() {
+                    return Err(anyhow!("Failed to fetch Linux ffmpeg: HTTP {}", response.status()));
+                }
+                std::fs::write(&tar_path, response.bytes().await?)?;
+
+                // Extract tar.xz
+                let extract_status = Command::new("tar")
+                    .arg("-xf")
+                    .arg(&tar_path)
+                    .arg("-C")
+                    .arg(&temp_dir)
+                    .status()?;
+                if !extract_status.success() {
+                    return Err(anyhow!("Failed to extract Linux ffmpeg tar.xz"));
+                }
+
+                // Locate the binaries inside the extracted folders
+                let mut ffmpeg_found = false;
+                let mut ffprobe_found = false;
+                for entry in std::fs::read_dir(&temp_dir)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.is_dir() && path.file_name().unwrap_or_default().to_string_lossy().starts_with("ffmpeg-") {
+                        let ffmpeg_bin = path.join("ffmpeg");
+                        let ffprobe_bin = path.join("ffprobe");
+                        if ffmpeg_bin.exists() {
+                            std::fs::rename(&ffmpeg_bin, self.bin_dir.join("ffmpeg"))?;
+                            ffmpeg_found = true;
+                        }
+                        if ffprobe_bin.exists() {
+                            std::fs::rename(&ffprobe_bin, self.bin_dir.join("ffprobe"))?;
+                            ffprobe_found = true;
+                        }
+                    }
+                }
+
+                if !ffmpeg_found || !ffprobe_found {
+                    return Err(anyhow!("Could not locate ffmpeg or ffprobe inside extracted archive"));
+                }
+
+                // Set execute permissions
+                use std::os::unix::fs::PermissionsExt;
+                for binary in &["ffmpeg", "ffprobe"] {
+                    let path = self.bin_dir.join(binary);
+                    if let Ok(metadata) = std::fs::metadata(&path) {
+                        let mut permissions = metadata.permissions();
+                        permissions.set_mode(0o755);
+                        std::fs::set_permissions(&path, permissions)?;
+                    }
+                }
+            }
+
+            // Cleanup temp dir
+            std::fs::remove_dir_all(&temp_dir).ok();
+            Ok(())
+        }
     }
 }
