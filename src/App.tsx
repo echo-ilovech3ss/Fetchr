@@ -562,6 +562,19 @@ export default function App() {
               <button className="btn-primary" style={{ width: '100%' }} onClick={handleStartOnboardingSetup}>
                 Configure Automatically
               </button>
+              <button 
+                className="btn-secondary" 
+                style={{ 
+                  width: '100%', 
+                  marginTop: '0.8rem', 
+                  background: 'transparent', 
+                  border: '1px solid rgba(255,255,255,0.1)', 
+                  color: 'var(--text-sub)' 
+                }} 
+                onClick={() => setIsOnboarding(false)}
+              >
+                Skip Setup
+              </button>
             </div>
           )}
 

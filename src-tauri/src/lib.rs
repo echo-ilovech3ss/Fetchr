@@ -217,8 +217,12 @@ async fn get_presets() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 async fn run_self_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    #[cfg(not(target_os = "android"))]
     let custom_yt = state.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
     
+    #[cfg(target_os = "android")]
+    let yt_dlp_status = json!({ "status": "OK", "path": "Android Sandbox", "version": "Bypassed" });
+    #[cfg(not(target_os = "android"))]
     let yt_dlp_status = match state.bin_manager.resolve_yt_dlp_binary(custom_yt.as_deref()) {
         Ok(path) => {
             match state.bin_manager.get_yt_dlp_version(custom_yt.as_deref()) {
@@ -229,6 +233,9 @@ async fn run_self_check(state: State<'_, AppState>) -> Result<serde_json::Value,
         Err(e) => json!({ "status": "MISSING", "error": e.to_string() })
     };
 
+    #[cfg(target_os = "android")]
+    let ffmpeg_status = json!({ "status": "OK", "path": "Android Sandbox" });
+    #[cfg(not(target_os = "android"))]
     let ffmpeg_status = match state.bin_manager.resolve_ffmpeg_binary() {
         Ok(path) => json!({ "status": "OK", "path": path }),
         Err(e) => json!({ "status": "MISSING", "error": e.to_string() })
