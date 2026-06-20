@@ -55,7 +55,13 @@ impl YtDlpEngine {
 
     /// Extract media metadata using yt-dlp -J. Returns raw structured info.
     pub async fn extract_metadata(&self, url: &str, cookies_browser: Option<&str>) -> Result<MediaMetadata> {
-        let yt_dlp_path = self.get_executable_path()?;
+        let yt_dlp_path = match self.get_executable_path() {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::info!("yt-dlp binary is missing or could not be resolved: {}. Falling back to oEmbed metadata extraction.", e);
+                return self.extract_metadata_oembed(url).await;
+            }
+        };
         let mut cmd = Command::new(yt_dlp_path);
         #[cfg(target_os = "windows")]
         {
@@ -146,6 +152,55 @@ impl YtDlpEngine {
             uploader_url,
             thumbnail_url,
             webpage_url,
+            formats,
+            extractor,
+        })
+    }
+
+    /// Extract basic metadata via public oEmbed API for YouTube, Vimeo, or TikTok.
+    pub async fn extract_metadata_oembed(&self, url: &str) -> Result<MediaMetadata> {
+        let oembed_url = if url.contains("youtube.com") || url.contains("youtu.be") {
+            format!("https://www.youtube.com/oembed?url={}&format=json", url)
+        } else if url.contains("vimeo.com") {
+            format!("https://vimeo.com/api/oembed.json?url={}", url)
+        } else if url.contains("tiktok.com") {
+            format!("https://www.tiktok.com/oembed?url={}", url)
+        } else {
+            return Err(anyhow!("Unsupported platform for offline/sandbox scanning. Direct yt-dlp required."));
+        };
+
+        let response = reqwest::get(&oembed_url).await?;
+        if !response.status().is_success() {
+            return Err(anyhow!("Failed to query metadata: HTTP {}", response.status()));
+        }
+
+        let json: serde_json::Value = response.json().await?;
+
+        let title = json["title"].as_str().unwrap_or("Untitled Media").to_string();
+        let uploader = json["author_name"].as_str().map(|s| s.to_string());
+        let uploader_url = json["author_url"].as_str().map(|s| s.to_string());
+        let thumbnail_url = json["thumbnail_url"].as_str().map(|s| s.to_string());
+        let extractor = json["provider_name"].as_str().unwrap_or("Generic").to_string().to_lowercase();
+        let duration = json["duration"].as_f64().unwrap_or(0.0);
+
+        let formats = vec![MediaFormat {
+            format_id: "best".to_string(),
+            ext: "mp4".to_string(),
+            resolution: Some("Auto".to_string()),
+            filesize: None,
+            vcodec: Some("h264".to_string()),
+            acodec: Some("aac".to_string()),
+            note: Some("Direct download format".to_string()),
+        }];
+
+        Ok(MediaMetadata {
+            title,
+            description: None,
+            duration,
+            uploader,
+            uploader_url,
+            thumbnail_url,
+            webpage_url: url.to_string(),
             formats,
             extractor,
         })

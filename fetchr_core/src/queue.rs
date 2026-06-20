@@ -208,23 +208,26 @@ impl QueueOrchestrator {
         self.db.save_task(&task)?;
         self.event_dispatcher.dispatch_task_update(task.clone());
 
-        // 2. Resolve yt-dlp binary
-        let custom_yt_dlp = self.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
-        let yt_dlp_path = match self.bin_manager.resolve_yt_dlp_binary(custom_yt_dlp.as_deref()) {
-            Ok(p) => p,
-            Err(e) => {
-                self.mark_task_failed(&mut task, &format!("Binary error: {}", e)).await;
-                return Ok(());
-            }
-        };
-
-        // 3. Resolve target download directory
+        // 2. Resolve target download directory
         let downloads_setting = self.db.get_setting("download_directory").unwrap_or(None);
         let downloads_dir = match downloads_setting {
             Some(d) => PathBuf::from(d),
             None => dirs::download_dir().unwrap_or_else(|| PathBuf::from("./downloads")),
         };
         std::fs::create_dir_all(&downloads_dir).ok();
+
+        // 3. Resolve yt-dlp binary
+        let custom_yt_dlp = self.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
+        let yt_dlp_path = match self.bin_manager.resolve_yt_dlp_binary(custom_yt_dlp.as_deref()) {
+            Ok(p) => p,
+            Err(e) => {
+                info!("yt-dlp missing or could not be resolved: {}. Falling back to direct HTTP download.", e);
+                if let Err(err) = self.execute_direct_download(task.clone(), downloads_dir).await {
+                    self.mark_task_failed(&mut task, &format!("Direct download error: {}", err)).await;
+                }
+                return Ok(());
+            }
+        };
 
         // 4. Extract URL Metadata first (if not cached or needed)
         // Set cookies browser if saved
@@ -535,6 +538,118 @@ impl QueueOrchestrator {
 
         let _ = self.db.save_task(task);
         self.event_dispatcher.dispatch_task_update(task.clone());
+    }
+
+    async fn execute_direct_download(&self, mut task: Task, downloads_dir: PathBuf) -> Result<()> {
+        info!("Executing direct HTTP download for task {} | URL: {}", task.id, task.url);
+        
+        // Mark as Downloading
+        task.status = TaskStatus::Downloading;
+        task.progress = 0.0;
+        self.db.save_task(&task)?;
+        self.event_dispatcher.dispatch_task_update(task.clone());
+
+        // Extract filename from URL or default
+        let filename = task.url.split('/').last().unwrap_or("video.mp4");
+        let filename_clean = if filename.contains('?') {
+            filename.split('?').next().unwrap_or("video.mp4").to_string()
+        } else {
+            filename.to_string()
+        };
+        
+        let file_ext = if filename_clean.contains('.') {
+            filename_clean.split('.').last().unwrap_or("mp4").to_string()
+        } else {
+            "mp4".to_string()
+        };
+
+        // Output destination path
+        let dest_path = downloads_dir.join(format!("{}_{}", task.id, filename_clean));
+        task.file_path = Some(dest_path.to_string_lossy().to_string());
+        self.db.save_task(&task)?;
+
+        // Send HTTP GET request
+        let response = match reqwest::get(&task.url).await {
+            Ok(r) => r,
+            Err(e) => {
+                self.mark_task_failed(&mut task, &format!("HTTP request failed: {}", e)).await;
+                return Ok(());
+            }
+        };
+
+        if !response.status().is_success() {
+            self.mark_task_failed(&mut task, &format!("Server returned error status: {}", response.status())).await;
+            return Ok(());
+        }
+
+        // Get content length for progress reporting
+        let total_size = response.content_length();
+        let mut file = match std::fs::File::create(&dest_path) {
+            Ok(f) => f,
+            Err(e) => {
+                self.mark_task_failed(&mut task, &format!("File creation error: {}", e)).await;
+                return Ok(());
+            }
+        };
+
+        let mut response = response; // make mutable to extract chunks
+        let mut downloaded_bytes: u64 = 0;
+        let start_time = std::time::Instant::now();
+        let mut last_update = std::time::Instant::now();
+
+        use std::io::Write;
+        while let Ok(Some(chunk)) = response.chunk().await {
+            if let Err(e) = file.write_all(&chunk) {
+                self.mark_task_failed(&mut task, &format!("Disk write error: {}", e)).await;
+                return Ok(());
+            }
+
+            downloaded_bytes += chunk.len() as u64;
+
+            // Rate-limit progress updates to dispatchers (e.g. every 300ms)
+            if last_update.elapsed().as_millis() > 300 {
+                last_update = std::time::Instant::now();
+                if let Some(total) = total_size {
+                    let progress = (downloaded_bytes as f64 / total as f64) * 100.0;
+                    task.progress = progress;
+                    
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    if elapsed > 0.0 {
+                        let speed_mb = (downloaded_bytes as f64 / (1024.0 * 1024.0)) / elapsed;
+                        task.speed = Some(format!("{:.2} MB/s", speed_mb));
+                    }
+                    
+                    self.db.save_task(&task)?;
+                    self.event_dispatcher.dispatch_task_update(task.clone());
+                }
+            }
+        }
+
+        // Finalize task as Completed
+        task.status = TaskStatus::Completed;
+        task.progress = 100.0;
+        task.speed = None;
+        task.eta = None;
+        self.db.save_task(&task)?;
+        let duration_secs = start_time.elapsed().as_secs() as i64;
+        let history_item = HistoryItem {
+            id: task.id.clone(),
+            title: filename_clean.clone(),
+            url: task.url.clone(),
+            file_path: dest_path.to_string_lossy().to_string(),
+            file_size: downloaded_bytes as i64,
+            duration: 0,
+            thumbnail_path: None,
+            resolution: Some(file_ext),
+            source_site: Some("Direct HTTP".to_string()),
+            download_duration_secs: duration_secs.max(1),
+            completed_at: Utc::now(),
+        };
+        let _ = self.db.add_to_history(&history_item);
+        self.event_dispatcher.dispatch_task_update(task.clone());
+        info!("Direct HTTP download completed for task {}", task.id);
+        
+        Ok(())
     }
 }
 
