@@ -262,6 +262,14 @@ async fn force_yt_dlp_update(state: State<'_, AppState>) -> Result<String, Strin
     }
 }
 
+#[tauri::command]
+async fn force_ffmpeg_update(state: State<'_, AppState>) -> Result<String, String> {
+    match state.bin_manager.download_ffmpeg_and_ffprobe().await {
+        Ok(_) => Ok("Successfully downloaded and updated FFmpeg and FFprobe.".to_string()),
+        Err(e) => Err(format!("FFmpeg update failed: {}", e))
+    }
+}
+
 // ==========================================
 // Tauri Builder Setup
 // ==========================================
@@ -309,7 +317,8 @@ pub fn run() {
             save_settings,
             get_presets,
             run_self_check,
-            force_yt_dlp_update
+            force_yt_dlp_update,
+            force_ffmpeg_update
         ])
         .setup(|app| {
             // Determine portable mode trigger
@@ -349,10 +358,54 @@ pub fn run() {
                 }
             };
 
-            let bin_manager = Arc::new(BinManager::new(portable_mode));
+            let bin_dir = if portable_mode {
+                std::path::PathBuf::from("./bin")
+            } else {
+                #[cfg(target_os = "android")]
+                {
+                    app.path().app_local_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("/data/local/tmp")).join("bin")
+                }
+                #[cfg(not(target_os = "android"))]
+                {
+                    match dirs::home_dir() {
+                        Some(home) => home.join(".videosaver").join("bin"),
+                        None => std::path::PathBuf::from("./.videosaver").join("bin"),
+                    }
+                }
+            };
+            let bin_manager = Arc::new(BinManager::new(bin_dir));
 
             // Auto-scaffold bin directories
             std::fs::create_dir_all(bin_manager.get_bin_dir()).ok();
+
+            // Startup background binary auto-update task (except on mobile/Android)
+            #[cfg(not(target_os = "android"))]
+            {
+                let bin_manager_clone = bin_manager.clone();
+                let db_clone = db.clone();
+                tauri::async_runtime::spawn(async move {
+                    let custom_yt = db_clone.get_setting("custom_yt_dlp_path").unwrap_or(None);
+                    if bin_manager_clone.resolve_yt_dlp_binary(custom_yt.as_deref()).is_err() {
+                        tracing::info!("yt-dlp missing at startup. Running auto-download...");
+                        let channel_str = db_clone.get_setting("yt_dlp_channel").unwrap_or(None);
+                        let channel = match channel_str.as_deref() {
+                            Some("Beta") => UpdateChannel::Beta,
+                            Some("Nightly") => UpdateChannel::Nightly,
+                            _ => UpdateChannel::Stable,
+                        };
+                        if let Err(e) = bin_manager_clone.download_yt_dlp(channel).await {
+                            tracing::error!("Failed to auto-download yt-dlp: {}", e);
+                        }
+                    }
+
+                    if bin_manager_clone.resolve_ffmpeg_binary().is_err() {
+                        tracing::info!("ffmpeg missing at startup. Running auto-download...");
+                        if let Err(e) = bin_manager_clone.download_ffmpeg_and_ffprobe().await {
+                            tracing::error!("Failed to auto-download ffmpeg/ffprobe: {}", e);
+                        }
+                    }
+                });
+            }
 
             let dispatcher = Arc::new(TauriEventDispatcher {
                 app_handle: app.handle().clone(),
