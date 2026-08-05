@@ -1,5 +1,6 @@
 pub mod db;
 pub mod sanitizer;
+pub mod url_normalizer;
 pub mod yt_dlp;
 pub mod queue;
 pub mod capabilities;

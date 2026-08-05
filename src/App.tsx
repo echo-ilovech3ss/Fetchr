@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import ThreeCanvas from './components/ThreeCanvas';
+import PlatformBadge from './components/PlatformBadge';
 import { 
   Download, 
   Play, 
@@ -849,7 +851,7 @@ export default function App() {
                     type="text" 
                     className="cyber-input" 
                     style={{ width: '100%', paddingLeft: '2.75rem' }} 
-                    placeholder="Paste any YouTube video link, Instagram reel, or other media page..." 
+                    placeholder="Paste any YouTube video link, Instagram reel, Facebook video, or other media page..." 
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -861,6 +863,7 @@ export default function App() {
                   {isAnalyzing ? 'Scanning...' : 'Scan Link'}
                 </button>
               </div>
+              <PlatformBadge url={urlInput} />
             </div>
 
             {/* Media Info Card */}
@@ -1046,13 +1049,29 @@ export default function App() {
             
             {/* Guide Card (if empty) */}
             {!analyzedMedia && (
-              <div className="cyber-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', justifyContent: 'center', flex: 1, borderStyle: 'dashed', background: 'transparent' }}>
-                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(235, 220, 210, 0.01)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-slate)' }}>
-                  <Download size={24} color="var(--text-muted)" style={{ opacity: 0.6 }} />
+              <div className="cyber-card" style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1.5rem', alignItems: 'center', justifyContent: 'space-between', flex: 1, position: 'relative', minHeight: '260px', overflow: 'hidden' }}>
+                <div style={{ flex: 1, zIndex: 2 }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
+                    Engine Core • 3D Interactive Pipeline
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-sub)', lineHeight: '1.6', marginBottom: '1.2rem' }}>
+                    Paste any link from YouTube, Instagram Reels, Facebook Videos, TikTok, or Vimeo. Automatic URL normalization, bot bypass, and high-performance extraction are active.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ background: 'rgba(224, 92, 59, 0.1)', border: '1px solid rgba(224, 92, 59, 0.25)', padding: '3px 10px', borderRadius: '4px', fontSize: '0.72rem', color: 'var(--accent-yellow)', fontWeight: 600 }}>
+                      Instagram Bot Bypass
+                    </span>
+                    <span style={{ background: 'rgba(24, 119, 242, 0.1)', border: '1px solid rgba(24, 119, 242, 0.25)', padding: '3px 10px', borderRadius: '4px', fontSize: '0.72rem', color: '#1877f2', fontWeight: 600 }}>
+                      Facebook Reel Normalizer
+                    </span>
+                    <span style={{ background: 'rgba(46, 204, 113, 0.1)', border: '1px solid rgba(46, 204, 113, 0.25)', padding: '3px 10px', borderRadius: '4px', fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600 }}>
+                      Hardware Transcoding
+                    </span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>Ready to Download</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Paste any link in the bar above and click "Scan Link" to choose quality and formats.</p>
+
+                <div style={{ width: isMobile ? '100%' : '320px', height: '220px', position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-slate)', flexShrink: 0 }}>
+                  <ThreeCanvas mode={isAnalyzing ? 'scanning' : 'ambient'} height="100%" />
                 </div>
               </div>
             )}

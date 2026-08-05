@@ -255,6 +255,10 @@ impl QueueOrchestrator {
         };
 
         // 4. Extract URL Metadata first (if not cached or needed)
+        // Normalize URL for clean extraction
+        let normalized_url = crate::url_normalizer::normalize_url(&task.url);
+        task.url = normalized_url.clone();
+
         // Set cookies browser if saved
         let cookies_browser = self.db.get_setting("cookies_browser").unwrap_or(None);
         let cookies_browser_str = cookies_browser.as_deref().unwrap_or("");
@@ -269,6 +273,12 @@ impl QueueOrchestrator {
         cmd.arg("--newline")
            .arg("--progress-template")
            .arg("download-json:%(progress)j");
+
+        // Inject platform bot bypass headers (UA / Referer)
+        let platform_args = crate::url_normalizer::get_platform_yt_dlp_args(&normalized_url);
+        for arg in platform_args {
+            cmd.arg(arg);
+        }
 
         // Inject resolved ffmpeg location to allow yt-dlp to merge/transcode in launchd GUI execution
         if let Ok(ffmpeg_path) = self.bin_manager.resolve_ffmpeg_binary() {
@@ -368,19 +378,16 @@ impl QueueOrchestrator {
                             None
                         };
                         
-                        if let Some(h) = height_limit {
-                            let format_filter = format!("bestvideo[height<={h}]+bestaudio/best[height<={h}]");
-                            cmd.arg("-f").arg(&format_filter);
-                            cmd.arg("-S").arg("res");
-                            info!("Applying dynamic quality limit height: {} with resolution sorting", h);
+                        let raw_filter = if let Some(h) = height_limit {
+                            format!("bestvideo[height<={h}]+bestaudio/best[height<={h}]")
                         } else {
-                            // "Best Available Quality": explicitly select best separate streams
-                            // and sort by resolution to guarantee highest quality on all platforms.
-                            // Using bestvideo* (with *) allows video-only + audio merge.
-                            cmd.arg("-f").arg("bestvideo*+bestaudio/best");
-                            cmd.arg("-S").arg("res");
-                            info!("Applying Best Available Quality: bestvideo*+bestaudio/best with -S res sorting");
-                        }
+                            "bestvideo*+bestaudio/best".to_string()
+                        };
+
+                        let platform_filter = crate::url_normalizer::get_platform_format_filter(&normalized_url, Some(&raw_filter));
+                        cmd.arg("-f").arg(&platform_filter);
+                        cmd.arg("-S").arg("res");
+                        info!("Applying format filter: {} with resolution sorting", platform_filter);
                         
                         cmd.arg("--merge-output-format").arg(container);
                         if container == "mp4" {
@@ -390,22 +397,26 @@ impl QueueOrchestrator {
                             info!("Enabling universal {}/AAC/YUV420P transcoding for strict compatibility.", encoder);
                         }
                     } else {
-                        cmd.arg("-f").arg("bestvideo+bestaudio/best");
+                        let platform_filter = crate::url_normalizer::get_platform_format_filter(&normalized_url, Some("bestvideo+bestaudio/best"));
+                        cmd.arg("-f").arg(&platform_filter);
                     }
                 } else if let Some(preset) = get_preset_by_id(format_preset) {
-                    cmd.arg("-f").arg(&preset.format_filter);
+                    let platform_filter = crate::url_normalizer::get_platform_format_filter(&normalized_url, Some(&preset.format_filter));
+                    cmd.arg("-f").arg(&platform_filter);
                     if let Some(merge) = &preset.merge_format {
                         cmd.arg("--merge-output-format").arg(merge);
                     }
                 } else {
-                    cmd.arg("-f").arg("bestvideo+bestaudio/best");
+                    let platform_filter = crate::url_normalizer::get_platform_format_filter(&normalized_url, Some("bestvideo+bestaudio/best"));
+                    cmd.arg("-f").arg(&platform_filter);
                 }
             }
             TaskType::DownloadAudio { audio_format } => {
                 cmd.arg("-x").arg("--audio-format").arg(audio_format).arg("--audio-quality").arg("0");
             }
             _ => {
-                cmd.arg("-f").arg("best");
+                let platform_filter = crate::url_normalizer::get_platform_format_filter(&normalized_url, Some("best"));
+                cmd.arg("-f").arg(&platform_filter);
             }
         }
 

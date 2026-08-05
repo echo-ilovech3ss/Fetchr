@@ -41,12 +41,13 @@ async fn analyze_url(
     url: String,
     cookies_browser: Option<String>
 ) -> Result<serde_json::Value, String> {
+    let normalized = fetchr_core::url_normalizer::normalize_url(&url);
     let custom_path = state.db.get_setting("custom_yt_dlp_path").unwrap_or(None);
     let engine = YtDlpEngine::new((*state.bin_manager).clone(), custom_path);
 
-    match engine.extract_metadata(&url, cookies_browser.as_deref()).await {
+    match engine.extract_metadata(&normalized, cookies_browser.as_deref()).await {
         Ok(meta) => {
-            let caps = get_capabilities(&url);
+            let caps = get_capabilities(&normalized);
             Ok(json!({
                 "metadata": meta,
                 "capabilities": caps
@@ -62,7 +63,8 @@ async fn add_download_task(
     url: String,
     task_type: TaskType
 ) -> Result<Task, String> {
-    state.queue.add_task(url, task_type).await.map_err(|e| e.to_string())
+    let normalized = fetchr_core::url_normalizer::normalize_url(&url);
+    state.queue.add_task(normalized, task_type).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
