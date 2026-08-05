@@ -20,13 +20,6 @@ export default function ThreeCanvas({
     const container = containerRef.current;
     if (!container) return;
 
-    // Check WebGL support in environment
-    const testCanvas = document.createElement('canvas');
-    const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
-    if (!gl || typeof (gl as any).texImage3D !== 'function') {
-      return;
-    }
-
     const width = container.clientWidth || 300;
     const currentHeight = container.clientHeight || 300;
 
@@ -37,12 +30,17 @@ export default function ThreeCanvas({
     const camera = new THREE.PerspectiveCamera(60, width / currentHeight, 0.1, 1000);
     camera.position.z = 5;
 
-    // 3. Renderer Setup
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    // 3. Renderer Setup safely
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch (e) {
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, currentHeight);
     container.appendChild(renderer.domElement);
